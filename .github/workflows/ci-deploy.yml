@@ -1,0 +1,58 @@
+
+
+name: Docker Build and Push
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - release/**
+
+env:
+  TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  REGISTRY: docker.io
+
+jobs:
+  docker-build-push:
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && startsWith(github.base_ref, 'release/'))
+    runs-on: ubuntu_latest
+
+    strategy:
+      matrix:
+        service:
+          - name: currency-svc
+          - path: ./
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker tag
+        id: vars
+        run: |
+          if ["${GITHUB_EVENT_NAME}" == "pull_request" ]; then
+            ref="${GITHUB_BASE_REF}"
+          fi
+          tag="${ref#release/}"
+          if [[ -z "$tag" ]]; then
+            echo "TAG is empty, setting to unknown-release"
+            tag="unknown-release"
+          fi
+          echo "docker_tag=$tag" >> $GITHUB_OUTPUT
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.USERNAME }}
+          password: ${{ env.TOKEN }}
+          registry: ${{ env.REGISTRY }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service.path }}
+          file: ${{ matrix.service.path }}/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ matrix.service.name }}:${{ steps.vars.outputs.docker_tag }}
