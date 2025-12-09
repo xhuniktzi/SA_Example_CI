@@ -23,7 +23,9 @@ jobs:
       matrix:
         service:
           - name: currency-svc
-          - path: ./
+            path: ./
+            image: currency-svc
+          
 
     steps:
       - name: Checkout code
@@ -55,4 +57,4 @@ jobs:
           context: ${{ matrix.service.path }}
           file: ${{ matrix.service.path }}/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ matrix.service.name }}:${{ steps.vars.outputs.docker_tag }}
+          tags: ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ matrix.service.image }}:${{ steps.vars.outputs.docker_tag }}
