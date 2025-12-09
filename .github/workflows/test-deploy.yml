@@ -1,0 +1,35 @@
+
+
+name: Unit Tests
+
+
+on:
+  pull_request:
+    types: [opened]
+    branches:
+      - release/**
+
+jobs:
+  unit-tests:
+    if: |
+      (github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/'))
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - name: currency-svc
+            path: ./
+
+    steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: ${{ matrix.service.path }}/package-lock.json
+    - name: Npm ci and test
+      working-directory: ${{ matrix.service.path }}
+      run: |
+        npm ci
+        npm test -- --runInBand
