@@ -78,7 +78,6 @@ jobs:
 
       - name: Rollout deployment to GKE
         env:
-          IMAGE: ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ matrix.service.image }}:latest
           K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE }}
         run: |
           if [ -n "$K8S_NAMESPACE" ]; then

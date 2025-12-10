@@ -20,8 +20,9 @@ export class AppController {
   async getCurrency(
     @Param('currency')
     currency: string,
-  ): Promise<string> {
+  ): Promise<any> {
     const result = await this.http.get(`/${currency}`)
+    console.log(`Currency data for ${currency}:`, result.data);
     return JSON.parse(result.data);
   }
 }
