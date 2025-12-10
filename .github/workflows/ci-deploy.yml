@@ -86,5 +86,4 @@ jobs:
           else
             ns_flag=""
           fi
-          kubectl $ns_flag set image deployment/${{ matrix.service.deployment }} ${{ matrix.service.container }}=$IMAGE --record
-          kubectl $ns_flag rollout status deployment/${{ matrix.service.deployment }}
+          kubectl $ns_flag rollout restart deployment/${{ matrix.service.deployment }}
