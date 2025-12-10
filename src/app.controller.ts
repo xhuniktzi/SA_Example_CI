@@ -22,7 +22,6 @@ export class AppController {
     currency: string,
   ): Promise<string> {
     const result = await this.http.get(`/${currency}`)
-    return `Currency requested: ${JSON.stringify(result.data)}`;
-
+    return JSON.parse(result.data);
   }
 }

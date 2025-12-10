@@ -25,24 +25,28 @@ jobs:
           - name: currency-svc
             path: ./
             image: currency-svc
+            deployment: currency-deployment
+            container: app
           
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up Docker tag
-        id: vars
-        run: |
-          if ["${GITHUB_EVENT_NAME}" == "pull_request" ]; then
-            ref="${GITHUB_BASE_REF}"
-          fi
-          tag="${ref#release/}"
-          if [[ -z "$tag" ]]; then
-            echo "TAG is empty, setting to unknown-release"
-            tag="unknown-release"
-          fi
-          echo "docker_tag=$tag" >> $GITHUB_OUTPUT
+      # - name: Set up Docker tag
+      #   id: vars
+      #   run: |
+      #     if ["${GITHUB_EVENT_NAME}" == "pull_request" ]; then
+      #       ref="${GITHUB_BASE_REF}"
+      #      else
+      #       ref="${GITHUB_REF#refs/heads/}"
+      #     fi
+      #     tag="${ref#release/}"
+      #     if [[ -z "$tag" ]]; then
+      #       echo "TAG is empty, setting to unknown-release"
+      #       tag="unknown-release"
+      #     fi
+      #     echo "docker_tag=$tag" >> $GITHUB_OUTPUT
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -57,4 +61,30 @@ jobs:
           context: ${{ matrix.service.path }}
           file: ${{ matrix.service.path }}/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ matrix.service.image }}:${{ steps.vars.outputs.docker_tag }}
+          tags: ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ matrix.service.image }}:latest
+          # :${{ steps.vars.outputs.docker_tag }}
+      
+      - name: Auth to Google Kubernetes Engine
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GKE_SA_KEY }}
+
+      - name: Set up GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+          location: ${{ secrets.GKE_LOCATION }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Rollout deployment to GKE
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ matrix.service.image }}:latest
+          K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE }}
+        run: |
+          if [ -n "$K8S_NAMESPACE" ]; then
+            ns_flag="-n $K8S_NAMESPACE"
+          else
+            ns_flag=""
+          fi
+          kubectl $ns_flag set image deployment/${{ matrix.service.deployment }} ${{ matrix.service.container }}=$IMAGE --record
+          kubectl $ns_flag rollout status deployment/${{ matrix.service.deployment }}
