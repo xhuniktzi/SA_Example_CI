@@ -25,28 +25,28 @@ export class AppController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('protected')
+  @Get('system/protected')
   getProtected() {
     return { message: 'This is a protected route' };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  @Get('admin-only')
+  @Get('system/admin-only')
   getAdminOnly() {
     return { message: 'This is an admin-only route' };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.User)
-  @Get('user-only')
+  @Get('system/user-only')
   getUserOnly() {
     return { message: 'This is a user-only route' };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.User)
-  @Get('both-roles')
+  @Get('system/both-roles')
   getBothRoles() {
     return { message: 'This route is accessible by both Admin and User roles' };
   }
