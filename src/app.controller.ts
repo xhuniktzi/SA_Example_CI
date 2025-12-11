@@ -1,28 +1,67 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import axios from 'axios';
+import { AuthService } from './auth/auth.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './common/roles.guard';
+import { Role } from './common/role.enum';
+import { Roles } from './common/roles.decorator';
 
 @Controller()
 export class AppController {
   private readonly http = axios.create({
     baseURL: 'https://open.er-api.com/v6/latest',
   });
-  constructor(private readonly appService: AppService) {
+  constructor(private readonly appService: AppService, private readonly authService: AuthService) {
 
   }
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+
+  // @UseGuards(JwtAuthGuard)
+  @Post('auth/login')
+  async login(@Body() body: { username: string; password: string }) {
+    const user = await this.authService.validateUser(body.username, body.password);
+    return this.authService.login(user);
   }
 
-  @Get('currency/:currency')
-  async getCurrency(
-    @Param('currency')
-    currency: string,
-  ): Promise<any> {
-    const result = await this.http.get(`/${currency}`)
-    console.log(`Currency data for ${currency}:`, result.data);
-    return JSON.parse(result.data);
+  @UseGuards(JwtAuthGuard)
+  @Get('protected')
+  getProtected() {
+    return { message: 'This is a protected route' };
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  @Get('admin-only')
+  getAdminOnly() {
+    return { message: 'This is an admin-only route' };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.User)
+  @Get('user-only')
+  getUserOnly() {
+    return { message: 'This is a user-only route' };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.User)
+  @Get('both-roles')
+  getBothRoles() {
+    return { message: 'This route is accessible by both Admin and User roles' };
+  }
+  // @Get()
+  // getHello(): string {
+  //   return this.appService.getHello();
+  // }
+
+  // @Get('currency/:currency')
+  // async getCurrency(
+  //   @Param('currency')
+  //   currency: string,
+  // ): Promise<any> {
+  //   const result = await this.http.get(`/${currency}`)
+  //   console.log(`Currency data for ${currency}:`, result.data);
+  //   return result.data;
+  // }
 }
