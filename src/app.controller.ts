@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import axios from 'axios';
 import { AuthService } from './auth/auth.service';
@@ -50,18 +50,38 @@ export class AppController {
   getBothRoles() {
     return { message: 'This route is accessible by both Admin and User roles' };
   }
+
+  @Get('health/ready')
+  async getReadiness() {
+    // Verificar dependências críticas aquí
+    const result = await this.http.get(`USD`)
+    if (result.status !== 200) {
+      console.log('Currency service is down');
+      return HttpCode(503);
+    }
+
+    console.log('All systems operational');
+    return HttpCode(200);
+  }
+
+  @Get('health/live')
+  getLiveness() {
+    // Verificar se a aplicação está rodando
+    console.log('Application is live');
+    return HttpCode(200);
+  }
   // @Get()
   // getHello(): string {
   //   return this.appService.getHello();
   // }
 
-  // @Get('currency/:currency')
-  // async getCurrency(
-  //   @Param('currency')
-  //   currency: string,
-  // ): Promise<any> {
-  //   const result = await this.http.get(`/${currency}`)
-  //   console.log(`Currency data for ${currency}:`, result.data);
-  //   return result.data;
-  // }
+  @Get('currency/:currency')
+  async getCurrency(
+    @Param('currency')
+    currency: string,
+  ): Promise<any> {
+    const result = await this.http.get(`/${currency}`)
+    console.log(`Currency data for ${currency}:`, result.data);
+    return result.data;
+  }
 }
